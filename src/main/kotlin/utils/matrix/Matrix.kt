@@ -12,7 +12,9 @@ data class Matrix<T>(val matrix: List<List<T>>) {
     val rowIndices = 0 until numberOfRows
     val colIndices = 0 until numberOfCols
 
-    operator fun get(point: Position) = matrix[point.row][point.col]
+    operator fun get(position: Position) = matrix[position.row][position.col]
+    
+    infix fun contains(position: Position) = position.row in rowIndices && position.col in colIndices
 
     fun <T> search(element: T) = sequence {
         (0 until numberOfRows).flatMap { row ->

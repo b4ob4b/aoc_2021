@@ -25,4 +25,8 @@ data class Position(val row: Int, val col: Int) {
     fun get4Neighbours(): Sequence<Position> = sequence {
         Direction4.values().forEach { yield(this@Position.moveTo(it)) }
     }
+
+    companion object {
+        val origin = Position(0, 0)
+    }
 }
