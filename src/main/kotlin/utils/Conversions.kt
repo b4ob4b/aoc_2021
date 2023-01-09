@@ -1,5 +1,7 @@
 package utils
 
+import utils.navigation.Position3D
+
 fun main() {
     """
         1
@@ -26,16 +28,29 @@ fun main() {
     // [[2, 3, 4], [5, 6, 7]]
 }
 
-fun <T> T.print() = println(this)
+fun <T> T.print() = this.also { println(it) }
 
 fun String.splitLines() = split("\n")
+
+fun String.splitLinesToInt() = split("\n").map(String::toInt)
 
 fun String.binaryToDecimal() = Integer.parseInt(this, 2)
 
 fun String.extractInts(separator: String = ",") = this.split(separator).map { it.toInt() }
 
-fun String.toGrid(separator: String = "") =
-    this.splitLines().map { line -> line.split(separator).filter { it.isNotBlank() } }
+fun String.toGrid(separator: String = "", filterBlanks: Boolean = true) =
+    this.splitLines().map { line ->
+        line.split(separator).let {
+            if (filterBlanks) {
+                it.filter { it.isNotBlank() }
+            } else {
+                it
+            }
+        }
+    }
 
 fun <T> String.toGrid(separator: String = "", mapCell: ((String) -> T)): List<List<T>> =
     this.toGrid(separator).map { it.map(mapCell) }
+
+fun String.toPosition3D() = this.split(",").map { it.toInt() }
+    .let { (x,y,z) -> Position3D(x,y,z) }

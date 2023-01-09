@@ -12,6 +12,7 @@ abstract class Day(
 
     private val displayName = "Year $year - Day ${day.format(2, '0')}: $name"
     val input = IO.readFile(day, inputType)
+    val isTest = inputType != IO.TYPE.INPUT
 
     fun solve() {
         solveWithPerformanceMeasurement()
