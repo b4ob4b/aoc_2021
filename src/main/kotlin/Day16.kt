@@ -1,30 +1,29 @@
-import utils.Day
-import utils.IO
-import utils.binaryToDecimal
-import utils.print
-import java.math.BigInteger
+import utils.*
 
 fun main() {
-    Day16(IO.TYPE.SAMPLE).test()
     Day16().solve()
 }
 
 class Day16(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Packet Decoder", inputType = inputType) {
 
-    override fun part1(): Any? {
+    override fun part1(): Int {
         val transmission = Transmission(Hex(input).toBinary())
         return Packet.of(transmission).getSumOfVersions()
     }
 
-    override fun part2(): Any? {
-        return "not yet implement"
+    override fun part2(): Long {
+        val transmission = Transmission(Hex(input).toBinary())
+        return Packet.of(transmission).evaluateExpression()
     }
 
     sealed class Packet(transmission: Transmission) {
         val version = transmission.take(3).binaryToDecimal()
-        val type = PacketType.of(transmission.take(3))
+        val typeId = transmission.take(3).binaryToDecimal()
+        val type = PacketType.of(typeId)
 
         abstract fun getSumOfVersions(): Int
+
+        abstract fun evaluateExpression(): Long
 
         companion object {
             fun of(transmission: Transmission): Packet {
@@ -52,10 +51,7 @@ class Day16(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Packet Decoder", inputTyp
         }
 
         override fun getSumOfVersions() = version
-
-        override fun toString(): String {
-            return "LiteralPacket(version: $version, type: $type, number:$number)"
-        }
+        override fun evaluateExpression() = number
     }
 
     sealed class OperatorPacket(transmission: Transmission) : Packet(transmission) {
@@ -65,10 +61,24 @@ class Day16(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Packet Decoder", inputTyp
         abstract fun parsePackets()
 
         override fun getSumOfVersions(): Int {
-            if (packets == null) {
-                throw Exception("run parsePackets in initialization")
-            } else {
-                return packets!!.sumOf { it.getSumOfVersions() } + version
+            return (packets ?: throw Exception("run parsePackets in initialization"))
+                .sumOf { it.getSumOfVersions() } + version
+        }
+
+        override fun evaluateExpression(): Long {
+            val numbers = (packets ?: throw Exception("run parsePackets in initialization")).map {
+                it.evaluateExpression()
+            }
+            return when (typeId) {
+                0 -> numbers.sum()
+                1 -> numbers.product()
+                2 -> numbers.min()
+                3 -> numbers.max()
+                5 -> if (numbers[0] > numbers[1]) 1 else 0
+                6 -> if (numbers[0] < numbers[1]) 1 else 0
+                7 -> if (numbers[0] == numbers[1]) 1 else 0
+                
+                else -> throw Exception("typeId: $typeId not defined")
             }
         }
 
@@ -95,10 +105,6 @@ class Day16(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Packet Decoder", inputTyp
                 }
             }
         }
-
-        override fun toString(): String {
-            return "Operator15BitPacket(version: $version, type: $type, lengthType:$lengthType, numberOfPackets: $numberOfPackets, packets: $packets)"
-        }
     }
 
     class Operator15BitPacket(private val transmission: Transmission) : OperatorPacket(transmission) {
@@ -116,10 +122,6 @@ class Day16(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Packet Decoder", inputTyp
                     add(Packet.of(transmission))
                 }
             }
-        }
-
-        override fun toString(): String {
-            return "Operator15BitPacket(version: $version, type: $type, lengthType:$lengthType, packetLength: $packetsLength, packets: $packets)"
         }
     }
 
@@ -159,17 +161,16 @@ class Day16(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Packet Decoder", inputTyp
             return string
         }
 
-        fun peakPacketType() = PacketType.of(stream.slice(3..5))
+        fun peakPacketType() = PacketType.of(stream.slice(3..5).binaryToDecimal())
 
         fun peakLengthType() = LengthType.of(stream[6].toString())
-
     }
 
     enum class PacketType {
         Literal, Operator;
 
         companion object {
-            fun of(string: String) = when (string.binaryToDecimal()) {
+            fun of(int: Int) = when (int) {
                 4 -> Literal
                 else -> Operator
             }
