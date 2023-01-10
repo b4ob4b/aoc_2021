@@ -6,15 +6,13 @@ fun main() {
 
 class Day16(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Packet Decoder", inputType = inputType) {
 
-    override fun part1(): Int {
-        val transmission = Transmission(Hex(input).toBinary())
-        return Packet.of(transmission).getSumOfVersions()
-    }
+    private val packet = input.asPacket()
 
-    override fun part2(): Long {
-        val transmission = Transmission(Hex(input).toBinary())
-        return Packet.of(transmission).evaluateExpression()
-    }
+    override fun part1() = packet.getSumOfVersions()
+
+    override fun part2() = packet.evaluateExpression()
+
+    private fun String.asPacket() = Packet.of(Transmission(Hex(this).toBinary()))
 
     sealed class Packet(transmission: Transmission) {
         val version = transmission.take(3).binaryToDecimal()
@@ -77,7 +75,7 @@ class Day16(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Packet Decoder", inputTyp
                 5 -> if (numbers[0] > numbers[1]) 1 else 0
                 6 -> if (numbers[0] < numbers[1]) 1 else 0
                 7 -> if (numbers[0] == numbers[1]) 1 else 0
-                
+
                 else -> throw Exception("typeId: $typeId not defined")
             }
         }
