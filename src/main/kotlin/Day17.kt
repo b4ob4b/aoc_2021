@@ -8,50 +8,39 @@ fun main() {
 
 class Day17(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Trick Shot", inputType = inputType) {
 
-    private val targetPoints = input.parseCornerPoints()
-    private val target = targetPoints.toTarget()
+    private val cornerPoints = input.parseCornerPoints()
+    private val target = cornerPoints.toTarget()
 
-    override fun part1(): Any? {
-        val maxX = targetPoints[1]
-        val maxY = abs(targetPoints[2])
-        
-        val speeds = (1..maxX).flatMap { x->
-            (1..maxY).map { y->
-                Position(x,y)
+    override fun part1(): Int {
+        val maxX = cornerPoints[1]
+        val maxY = cornerPoints[2]
+        val speeds = (1..cornerPoints[1]).flatMap { x ->
+            (1..abs(maxY)).map { y ->
+                Position(x, y)
             }
         }
-        
-        speeds.size.print()
-        
-        var highest = 0
-        var counter = 0
-        loop@for (speed in speeds) {
-            counter++.print()
-            var speed = speed
-            var probe = Position.origin
-            val path = mutableListOf<Position>()
 
-            while (probe !in target) {
-                if (probe.x > maxX || probe.y < targetPoints[2]) {
-                    path.clear()
-                    continue@loop
-                }
-                probe += speed
-                path.add(probe)
-                val dx = if (speed.x == 0) 0 else speed.x - 1
-                val dy = speed.y - 1
-                speed = Position(dx, dy)
+        return speeds.maxOf { speed ->
+            val path = Position.origin.generateTrajectory(speed).takeWhile { 
+                    (position, _) -> position.x < maxX && position.y > maxY
             }
-
-            val max = path.maxOfOrNull { it.y }
-            if (max != null && max > highest) {
-                highest = max
-            }
+            
+            val last = path.last().let { it.first + it.second }
+            if (last in target) path.maxOf { it.first.y } else 0
         }
-return highest.print()
-        
+    }
 
-        return "not yet implement"
+    private fun Position.generateTrajectory(initialSpeed: Position) = generateSequence(this to initialSpeed) {
+        val position = it.first
+        val speed = it.second
+        (position + speed) to speed.alterSpeed()
+    }
+
+    private fun Position.alterSpeed(): Position {
+        return Position(
+            if (this.x == 0) 0 else this.x - 1,
+            this.y - 1
+        )
     }
 
     override fun part2(): Any? {
