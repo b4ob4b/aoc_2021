@@ -29,4 +29,4 @@ fun <T> List<List<T>>.valueOf(position: Position) = this[position.x][position.y]
 
 fun <T> List<List<T>>.toMatrix() = Matrix(this)
 
-fun <T> List<List<T>>.toField() = Field(this.reversed())
+fun <T> List<List<T>>.toField() = Field(this)

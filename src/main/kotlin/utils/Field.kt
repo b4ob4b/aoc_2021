@@ -1,4 +1,7 @@
 package utils
+
+import utils.matrix.Matrix
+
 /*
 * x is the column
 * y is the row
@@ -7,7 +10,7 @@ package utils
 * */
 data class Field<T>(val field: List<List<T>>) {
 
-    constructor(x: Int, y: Int, element: () -> T) : this(List(x * y) { element.invoke() }.chunked(y))
+    constructor(x: Int, y: Int, element: () -> T) : this(List(x * y) { element.invoke() }.chunked(x))
 
     val numberOfRows = field.size
     val numberOfCols = field.first().size
@@ -24,25 +27,26 @@ data class Field<T>(val field: List<List<T>>) {
             }
         }
     }
-
+    
+    fun <T> insertAt(pair: Pair<Position,T>) = insertAt(pair.first, pair.second)
 
     fun <T> insertAt(position: Position, element: T): Field<T> {
         return field.mapIndexed { y, rows ->
             rows.mapIndexed { x, cell ->
-                if(x == position.x && y == position.y) element else cell as T
+                if (x == position.x && y == position.y) element else cell as T
             }
         }.toField()
     }
 
-    fun <T> insertAt(positionMap: Map<Position,T>): Field<T> {
+    fun <T> insertAt(positionMap: Map<Position, T>): Field<T> {
         return field.mapIndexed { y, rows ->
             rows.mapIndexed { x, cell ->
-                if(positionMap.containsKey(Position(x, y))) positionMap[Position(x, y)] as T else cell as T
+                if (positionMap.containsKey(Position(x, y))) positionMap[Position(x, y)] as T else cell as T
             }
         }.toField()
     }
-
-    override fun toString() = field
+    
+    override fun toString() = field.reversed()
         .joinToString("\n") { row ->
             row.joinToString(" ")
         }
