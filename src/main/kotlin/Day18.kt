@@ -12,13 +12,22 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
 
     override fun part1(): Any? {
         val numbers = input.splitLines()
-        val snailfishNumbers = numbers.map { Number.from(it) }
-
-        (Number.from("[[[[[9,8],1],2],3],4]").reduce() == Number.from("[[[[0,9],2],3],4]")).print()
-        (Number.from("[7,[6,[5,[4,[3,2]]]]]").reduce() == Number.from("[7,[6,[5,[7,0]]]]")).print()
-        (Number.from("[[6,[5,[4,[3,2]]]],1]").reduce() == Number.from("[[6,[5,[7,0]]],3]")).print()
-        (Number.from("[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]").reduce() == Number.from("[[3,[2,[8,0]]],[9,[5,[7,0]]]]")).print()
         
+        val snailfishNumbers = numbers.map { Number.from(it) }
+//        snailfishNumbers.reduce { acc, number -> ((acc + number.reduce()) as Number).reduce() as Number }.print()
+        ((Number.from("[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]")  + Number.from("[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]")) as Number ).print().reduce().print()
+        
+        
+
+//        Number.from("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]").calculateMagnitude().print()
+        
+//        (Number.from("[[[[[9,8],1],2],3],4]").reduce() == Number.from("[[[[0,9],2],3],4]")).print()
+//        (Number.from("[7,[6,[5,[4,[3,2]]]]]").reduce() == Number.from("[7,[6,[5,[7,0]]]]")).print()
+//        (Number.from("[[6,[5,[4,[3,2]]]],1]").reduce() == Number.from("[[6,[5,[7,0]]],3]")).print()
+//        (Number.from("[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]").reduce() == Number.from("[[3,[2,[8,0]]],[9,[5,[7,0]]]]")).print()
+
+//Number.from("[[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]]").reduce().print()
+//        ((Number.from("[[[[4,3],4],4],[7,[[8,4],9]]]") + Number.from("[1,1]")) as Number).reduce().print()
         return 1
     }
 
@@ -32,11 +41,15 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
                 return calculateDepth()
             }
 
+        abstract fun calculateMagnitude(): Int
+        
         abstract fun calculateDepth(): Int
 
         operator fun plus(other: SnailFishNumber): SnailFishNumber {
             return Number(this to other)
         }
+
+        abstract fun split(): SnailFishNumber 
 
         companion object {
             fun from(string: String): SnailFishNumber {
@@ -72,18 +85,37 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
             }
         }
 
+        override fun calculateMagnitude(): Int {
+            val (left, right) = pair
+            return left.calculateMagnitude() * 3 + right.calculateMagnitude() * 2 
+        }
+
         override fun calculateDepth(): Int {
             return pair.toList().maxOf { it.depth } + 1
         }
 
+        override fun split(): SnailFishNumber {
+            var (left, right) = pair
+            left = left.split()
+            right = right.split()
+            return Number(left to right)
+        }
+
         fun reduce(): SnailFishNumber {
-            return explode(0).second
+            var number = this
+            var changed = true 
+            while (changed) {
+                println()
+                val n2 = number.explode(0).print().second.split()
+                if ((n2) == number) changed = false
+                number = n2 as Number
+                println()
+                number.print()
+            }
+            return number
         }
 
         private fun explode(depth: Int): Triple<Int?, SnailFishNumber, Int?> {
-            if (pair == Value(3) to Value(2)) {
-                println()
-            }
             var (left, right) = pair
             if (depth == 4) {
                 return Triple((left as Value).value, Value(0), (right as Value).value)
@@ -118,7 +150,6 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
                     rightUp = newRight
                 }
             }
-            println()
 
             return Triple(leftUp, Number(left to right), rightUp)
         }
@@ -141,6 +172,21 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
     }
 
     data class Value(val value: Int) : SnailFishNumber() {
+        override fun calculateMagnitude(): Int {
+            return value
+        }
+
         override fun calculateDepth() = 0
+        override fun split(): SnailFishNumber {
+            return if (value > 9) {
+                if (value % 2 == 0) {
+                    Number(Value(value / 2) to Value(value / 2))
+                }else {
+                    Number(Value(value / 2) to Value(value / 2 + 1))
+                }
+            } else {
+                this
+            }
+        }
     }
 }           
