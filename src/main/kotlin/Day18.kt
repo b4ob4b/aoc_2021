@@ -10,25 +10,11 @@ fun main() {
 
 class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType) {
 
-    override fun part1(): Any? {
+    override fun part1(): Int {
         val numbers = input.splitLines()
-        
-        val snailfishNumbers = numbers.map { Number.from(it) }
-//        snailfishNumbers.reduce { acc, number -> ((acc + number.reduce()) as Number).reduce() as Number }.print()
-        ((Number.from("[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]")  + Number.from("[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]")) as Number ).print().reduce().print()
-        
-        
 
-//        Number.from("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]").calculateMagnitude().print()
-        
-//        (Number.from("[[[[[9,8],1],2],3],4]").reduce() == Number.from("[[[[0,9],2],3],4]")).print()
-//        (Number.from("[7,[6,[5,[4,[3,2]]]]]").reduce() == Number.from("[7,[6,[5,[7,0]]]]")).print()
-//        (Number.from("[[6,[5,[4,[3,2]]]],1]").reduce() == Number.from("[[6,[5,[7,0]]],3]")).print()
-//        (Number.from("[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]").reduce() == Number.from("[[3,[2,[8,0]]],[9,[5,[7,0]]]]")).print()
-
-//Number.from("[[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]]").reduce().print()
-//        ((Number.from("[[[[4,3],4],4],[7,[[8,4],9]]]") + Number.from("[1,1]")) as Number).reduce().print()
-        return 1
+        val snailfishNumbers = numbers.map { SnailFishNumber.from(it) }
+        return snailfishNumbers.reduce { acc, number -> (acc + number).reduce() }.calculateMagnitude()
     }
 
     override fun part2(): Any? {
@@ -42,14 +28,39 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
             }
 
         abstract fun calculateMagnitude(): Int
-        
+
         abstract fun calculateDepth(): Int
+
+        fun reduce(): SnailFishNumber {
+            var number = this
+            var explosion = number.explode()
+            var split = explosion.split()
+            
+            while (split != number) {
+                number = split
+                explosion = number.explode()
+                split = explosion.split()
+            }
+            return number
+        }
+
+        fun explode(): SnailFishNumber {
+            var number = this
+            var explosion = explode(0).snailFishNumber
+            while (number != explosion) {
+                number = explosion
+                explosion = explosion.explode(0).snailFishNumber
+            }
+            return number
+        }
+
+        abstract fun explode(depth: Int, found: Boolean = false): Explosion
 
         operator fun plus(other: SnailFishNumber): SnailFishNumber {
             return Number(this to other)
         }
 
-        abstract fun split(): SnailFishNumber 
+        abstract fun split(): SnailFishNumber
 
         companion object {
             fun from(string: String): SnailFishNumber {
@@ -61,6 +72,8 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
             }
         }
     }
+
+    data class Explosion(val left: Int? = null, val snailFishNumber: SnailFishNumber, val right: Int? = null, val found: Boolean = false)
 
     data class Number(val pair: Pair<SnailFishNumber, SnailFishNumber>) : SnailFishNumber() {
         companion object {
@@ -87,7 +100,7 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
 
         override fun calculateMagnitude(): Int {
             val (left, right) = pair
-            return left.calculateMagnitude() * 3 + right.calculateMagnitude() * 2 
+            return left.calculateMagnitude() * 3 + right.calculateMagnitude() * 2
         }
 
         override fun calculateDepth(): Int {
@@ -96,36 +109,26 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
 
         override fun split(): SnailFishNumber {
             var (left, right) = pair
-            left = left.split()
-            right = right.split()
-            return Number(left to right)
-        }
-
-        fun reduce(): SnailFishNumber {
-            var number = this
-            var changed = true 
-            while (changed) {
-                println()
-                val n2 = number.explode(0).print().second.split()
-                if ((n2) == number) changed = false
-                number = n2 as Number
-                println()
-                number.print()
+            val splitLeft = left.split()
+            if (splitLeft == left) {
+                right = right.split()
             }
-            return number
+            return Number(splitLeft to right)
         }
 
-        private fun explode(depth: Int): Triple<Int?, SnailFishNumber, Int?> {
+        override fun explode(depth: Int, found: Boolean): Explosion {
             var (left, right) = pair
+            var explosionFound = found
             if (depth == 4) {
-                return Triple((left as Value).value, Value(0), (right as Value).value)
+                return Explosion((left as Value).value, Value(0), (right as Value).value, true)
             }
 
             var leftUp: Int? = null
             var rightUp: Int? = null
 
             if (left is Number) {
-                val (newLeft, middle, newRight) = left.explode(depth + 1)
+                val (newLeft, middle, newRight, found) = left.explode(depth + 1)
+                explosionFound = found
                 left = middle
                 if (newRight != null) {
                     right = when (right) {
@@ -137,8 +140,9 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
                     leftUp = newLeft
                 }
             }
-            if (right is Number) {
-                val (newLeft, middle, newRight) = right.explode(depth + 1)
+            if (right is Number && !explosionFound) {
+                val (newLeft, middle, newRight, found) = right.explode(depth + 1)
+                explosionFound = found
                 right = middle
                 if (newLeft != null) {
                     left = when (left) {
@@ -151,14 +155,16 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
                 }
             }
 
-            return Triple(leftUp, Number(left to right), rightUp)
+
+
+            return Explosion(leftUp, Number(left to right), rightUp, explosionFound)
         }
 
         private fun addRight(newLeft: Int): SnailFishNumber {
             val (left, right) = pair
             return when (right) {
                 is Value -> Number(left to Value(right.value + newLeft))
-                is Number -> right.addRight(newLeft)
+                is Number -> Number(left to right.addRight(newLeft))
             }
         }
 
@@ -166,8 +172,13 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
             val (left, right) = pair
             return when (left) {
                 is Value -> Number(Value(left.value + newRight) to right)
-                is Number -> left.addLeft(newRight)
+                is Number -> Number(left.addLeft(newRight) to right)
             }
+        }
+
+        override fun toString(): String {
+            val (left, right) = pair
+            return "[$left,$right]"
         }
     }
 
@@ -177,16 +188,24 @@ class Day18(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
         }
 
         override fun calculateDepth() = 0
+        override fun explode(depth: Int, found: Boolean): Explosion {
+            return Explosion(snailFishNumber = this)
+        }
+
         override fun split(): SnailFishNumber {
             return if (value > 9) {
                 if (value % 2 == 0) {
                     Number(Value(value / 2) to Value(value / 2))
-                }else {
+                } else {
                     Number(Value(value / 2) to Value(value / 2 + 1))
                 }
             } else {
                 this
             }
+        }
+
+        override fun toString(): String {
+            return "$value"
         }
     }
 }           
