@@ -30,6 +30,8 @@ fun main() {
 
 fun <T> T.print() = this.also { println(it) }
 
+fun <T> Collection<T>.fPrint() = this.forEach { println(it) }
+
 fun String.splitLines() = split("\n")
 
 fun String.splitLinesToInt() = split("\n").map(String::toInt)
@@ -53,4 +55,4 @@ fun <T> String.toGrid(separator: String = "", mapCell: ((String) -> T)): List<Li
     this.toGrid(separator).map { it.map(mapCell) }
 
 fun String.toPosition3D() = this.split(",").map { it.toInt() }
-    .let { (x,y,z) -> Position3D(x,y,z) }
+    .let { (x, y, z) -> Position3D(x, y, z) }
