@@ -32,6 +32,8 @@ fun <T> T.print() = this.also { println(it) }
 
 fun <T> Collection<T>.fPrint() = this.forEach { println(it) }
 
+fun <T> Sequence<T>.fPrint() = this.forEach { println(it) }
+
 fun String.splitLines() = split("\n")
 
 fun String.splitLinesToInt() = split("\n").map(String::toInt)
