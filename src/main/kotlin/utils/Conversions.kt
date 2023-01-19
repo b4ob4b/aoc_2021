@@ -58,3 +58,5 @@ fun <T> String.toGrid(separator: String = "", mapCell: ((String) -> T)): List<Li
 
 fun String.toPosition3D() = this.split(",").map { it.toInt() }
     .let { (x, y, z) -> Position3D(x, y, z) }
+
+fun <T> List<T>.toPair() = this.zipWithNext().single() 
