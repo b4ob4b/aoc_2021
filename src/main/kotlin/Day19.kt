@@ -2,51 +2,59 @@ import utils.*
 import utils.navigation.Position3D
 
 fun main() {
-    Day19(IO.TYPE.SAMPLE).test(79)
+    Day19(IO.TYPE.SAMPLE).test(79, 3621)
     Day19().solve()
 }
 
 
 class Day19(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType) {
+
     private val scanners = input.parseScanners()
+    private val scannerPositions = mutableListOf<Position3D>()
 
     override fun part1(): Int {
-
         val translatedBeacons = scanners.first().beacons.toMutableSet()
-        val scanners = scanners.toMutableList().also { it.removeFirst() }
-        val toRemove = mutableSetOf<Scanner>()
-        while (scanners.isNotEmpty()) {
-
-            for (s in scanners) {
-                val beacons = s.beacons
-                val pairs = translatedBeacons.findPairs(beacons)
-
-                if (pairs.isEmpty()) continue
-
-                val d0 = pairs[0].first - pairs[1].first
-                val d1 = pairs[0].second - pairs[1].second
-
-                val r = pointRotations().firstOrNull { rotate ->
-                    d0 == rotate(d1)
-                } ?: continue
-
-                val offset = pairs.first().let { (p1, p2) ->
-                    p1 - r(p2)
-                }
-
-                val translations = beacons.map { r(it) + offset }
-                translatedBeacons.addAll(translations)
-                toRemove.add(s)
+        val scannerStack = ArrayDeque<Scanner>()
+            .also {
+                it.addAll(scanners.drop(1))
             }
-            scanners.removeAll(toRemove)
+
+        while (scannerStack.isNotEmpty()) {
+            val scanner = scannerStack.removeFirst()
+
+            val beacons = scanner.beacons
+            val pairs = translatedBeacons.findPairs(beacons).take(2).toList()
+
+            if (pairs.isEmpty()) {
+                scannerStack.addLast(scanner)
+                continue
+            }
+
+            val delta0 = pairs[0].first - pairs[1].first
+            val delta1 = pairs[0].second - pairs[1].second
+
+            val rotate = pointRotations().firstOrNull { rotate ->
+                delta0 == rotate(delta1)
+            }
+            if (rotate == null) {
+                scannerStack.addLast(scanner)
+                continue
+            }
+
+            val offset = pairs.first().let { (p1, p2) ->
+                p1 - rotate(p2)
+            }
+            scannerPositions.add(offset)
+
+            val translations = beacons.map { rotate(it) + offset }
+            translatedBeacons.addAll(translations)
         }
         return translatedBeacons.size
     }
 
-    override fun part2(): Any? {
-        return "not yet implement"
+    override fun part2(): Int {
+        return scannerPositions.combinations(2).map { it[0] - it[1] }.maxOf { it.manhattenDistance }
     }
-
 
     data class Scanner(
         val id: Int,
@@ -59,15 +67,14 @@ class Day19(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType)
             Scanner(index, beacons)
         }
 
-    private fun Collection<Position3D>.findPairs(other: List<Position3D>): List<Pair<Position3D, Position3D>> {
-        val beaconToManhatten = this.associateWith { p -> this.map { p - it }.map { it.manhattenDistance } }
+    private fun Collection<Position3D>.findPairs(other: List<Position3D>): Sequence<Pair<Position3D, Position3D>> = sequence {
+        val beaconToManhatten = this@findPairs.associateWith { p -> this@findPairs.map { p - it }.map { it.manhattenDistance } }
         val otherBeaconToManhatten = other.associateWith { p -> other.map { p - it }.map { it.manhattenDistance } }
-        return beaconToManhatten.flatMap { (p0, distances0) ->
-            otherBeaconToManhatten.mapNotNull { (p1, distances1) ->
+        beaconToManhatten.forEach { (p0, distances0) ->
+            otherBeaconToManhatten.forEach { (p1, distances1) ->
                 val intersections = distances0 intersect distances1.toSet()
                 if (intersections.size >= 10)
-                    p0 to p1
-                else null
+                    yield(p0 to p1)
             }
         }
     }
