@@ -3,74 +3,81 @@ import utils.matrix.Matrix
 import utils.matrix.Position
 
 fun main() {
-    Day20(IO.TYPE.SAMPLE).test(35)
+    Day20(IO.TYPE.SAMPLE).test(35, 3351)
     Day20().solve()
 }
 
-class Day20(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("", inputType = inputType) {
-    override fun part1(): Any? {
-        val imageEnhancementAlgorithm = input.split("\n\n").first()
-        var matrix = input.split("\n\n").last().toGrid().toMatrix()
+class Day20(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Trench Map", inputType = inputType) {
 
+    private val imageEnhancementAlgorithm = input.split("\n\n").first()
+    private val matrix = input.split("\n\n").last().toGrid().toMatrix()
 
-        val mask = listOf(
-            Position(-1, -1), Position(-1, 0), Position(-1, 1),
-            Position(0, -1), Position(0, 0), Position(0, 1),
-            Position(1, -1), Position(1, 0), Position(1, 1),
-        )
+    private val mask = listOf(
+        Position(-1, -1), Position(-1, 0), Position(-1, 1),
+        Position(0, -1), Position(0, 0), Position(0, 1),
+        Position(1, -1), Position(1, 0), Position(1, 1),
+    )
+    private val imageExtension = 3
+    private val offset = Position(imageExtension, imageExtension)
 
-        val extension = 3
+    override fun part1() = matrix.calculateImage(2).countLit()
 
-        repeat(2) {
+    override fun part2() = matrix.calculateImage(50).countLit()
 
-            val rows = (-extension..matrix.numberOfRows + (extension))
-            val cols = (-extension..matrix.numberOfCols + (extension))
+    private fun Matrix<String>.calculateImage(cycles: Int): Matrix<String> {
+        return (1..cycles).fold(this) { matrix, cycle ->
+            val output = matrix.getPixelMasks(cycle).getNewPixels()
+            val emptyMatrix = matrix.nextEmptyMatrix()
 
-            val m = buildMap<Position, String> {
-                for (r in rows) {
-                    for (c in cols) {
-                        val p = Position(r, c)
-                        val s = buildString {
-                            mask.forEach {
-                                val pp = p + it
-                                if (matrix contains (pp)) {
-                                    append(matrix[pp])
-                                } else append(".")
-                            }
-                        }
-                        put(p, s)
-                    }
-                }
-            }
-
-
-            val output = m.map { (p, pixels) ->
-                val number = pixels.toBinary().binaryToDecimal()
-                p to imageEnhancementAlgorithm[number].toString()
-            }
-
-            matrix = Matrix(rows.last + extension, cols.last + extension) { "." }.insertAt(output.associate { (p, s) ->
-                p + Position(
-                    extension,
-                    extension
-                ) to s
+            emptyMatrix.insertAt(output.associate { (pos, pixel) ->
+                (pos + offset) to pixel
             })
         }
-        val oneHalfExtension = extension + extension / 2
-        val rowIndices = oneHalfExtension..(matrix.numberOfRows - oneHalfExtension)
-        val colIndices = oneHalfExtension..(matrix.numberOfCols - oneHalfExtension)
+    }
 
-        return rowIndices.sumOf { r ->
-            colIndices.count { c ->
-                matrix[Position(r, c)] == "#"
+    private fun Matrix<String>.nextEmptyMatrix(): Matrix<String> {
+        return Matrix(this.numberOfRows + 2 * imageExtension, this.numberOfCols + 2 * imageExtension) { "." }
+    }
+
+    private fun Matrix<String>.getPixelMasks(cycle: Int): Map<Position, String> {
+
+        val rows = -imageExtension..this.numberOfRows + imageExtension
+        val cols = -imageExtension..this.numberOfCols + imageExtension
+
+        val outerPixel = if (cycle % 2 == 0) imageEnhancementAlgorithm.first().toString() else "."
+
+        return buildMap<Position, String> {
+            for (r in rows) {
+                for (c in cols) {
+                    val p = Position(r, c)
+                    val s = buildString {
+                        mask.forEach {
+                            val pp = p + it
+                            if (this@getPixelMasks contains (pp)) {
+                                append(this@getPixelMasks[pp])
+                            } else append(outerPixel)
+                        }
+                    }
+                    put(p, s)
+                }
             }
         }
     }
 
-    override fun part2(): Any? {
-        return "not yet implement"
+    private fun Map<Position, String>.getNewPixels() = this.map { (p, pixels) ->
+        val number = pixels.toBinary().binaryToDecimal()
+        p to imageEnhancementAlgorithm[number].toString()
     }
 
+    private fun Matrix<String>.countLit(): Int {
+        val pixelBand = imageExtension + imageExtension / 2
+        val rowIndices = pixelBand until this.numberOfRows - pixelBand
+        val colIndices = pixelBand until this.numberOfCols - pixelBand
+
+        return rowIndices.sumOf { r ->
+            colIndices.count { c -> this[Position(r, c)] == "#" }
+        }
+    }
 
     private fun String.toBinary() = this.toList().joinToString("") {
         if (it == '#') "1" else "0"
