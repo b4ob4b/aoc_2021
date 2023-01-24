@@ -8,38 +8,43 @@ fun main() {
 
 class Day22(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Reactor Reboot", inputType = inputType) {
 
-    private val steps = input
-        .splitLines()
+    private val steps = input.parseSteps()
+
+    override fun part1() = steps
+        .filter {
+            it.cuboid overlaps Cuboid(
+                -50..50,
+                -50..50,
+                -50..50,
+            )
+        }
+        .execute()
+        .countCubes()
+
+    override fun part2() = steps.execute().countCubes()
+
+    private fun String.parseSteps() = this.splitLines()
         .map {
             val state = State.valueOf(it.split(" ").first())
             val ranges = it.to3DRange()
             RebootStep(state, Cuboid(ranges))
         }
-
-    override fun part1(): Long {
-
-        val validRegion = Cuboid(
-            -50..50,
-            -50..50,
-            -50..50,
-        )
-
-        return steps
-            .filter { it.cuboid overlaps validRegion }
-            .fold(emptyList<Cuboid>()) { region, (state, cuboid) ->
-                when (state) {
-                    State.on -> region add cuboid
-                    State.off -> region remove cuboid
-                }
-            }.countCubes()
+    
+    private fun String.to3DRange(): List<IntRange> {
+        return """(-?)\d+..(-?)\d+""".toRegex().findAll(this)
+            .map { matchResult -> matchResult.value }
+            .toList()
+            .map { it.asRange() }
     }
 
-    override fun part2() = steps.fold(emptyList<Cuboid>()) { region, (state, cuboid) ->
+    private fun String.asRange() = this.split("..").let { (p1, p2) -> p1.toInt()..p2.toInt() }
+
+    private fun List<RebootStep>.execute() = this.fold(emptyList<Cuboid>()) { region, (state, cuboid) ->
         when (state) {
             State.on -> region add cuboid
             State.off -> region remove cuboid
         }
-    }.countCubes()
+    }
 
     private infix fun List<Cuboid>.add(that: Cuboid): List<Cuboid> {
         if (this.isEmpty()) return listOf(that)
@@ -54,18 +59,9 @@ class Day22(inputType: IO.TYPE = IO.TYPE.INPUT) : Day("Reactor Reboot", inputTyp
     private fun List<Cuboid>.countCubes() = this.sumOf { it.countCubes() }
 
     enum class State { on, off }
-    
+
     data class RebootStep(val state: State, val cuboid: Cuboid)
-
-    private fun String.to3DRange(): List<IntRange> {
-        return """(-?)\d+..(-?)\d+""".toRegex().findAll(this)
-            .map { matchResult -> matchResult.value }
-            .toList()
-            .map { it.asRange() }
-    }
-
-    private fun String.asRange() = this.split("..").let { (p1, p2) -> p1.toInt()..p2.toInt() }
-
+    
     data class Cuboid(val ranges: List<IntRange>) {
         constructor(intRangeX: IntRange, intRangeY: IntRange, intRangeZ: IntRange) : this(listOf(intRangeX, intRangeY, intRangeZ))
 
